@@ -24,7 +24,7 @@ module MediawikiApi
       params[:lgtoken] = token unless token.nil?
       resp = @conn.post "", params
 
-      data = JSON.parse resp.body
+      data = JSON.parse(resp.body)["login"]
 
       case data["result"]
       when "Success"

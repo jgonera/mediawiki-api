@@ -9,7 +9,7 @@ describe MediawikiApi::Client do
     it "logs in when API returns Success" do
       stub_request(:post, api_url).
         with(body: { format: "json", action: "login", lgname: "Test", lgpassword: "qwe123" }).
-        to_return(body: body_base.merge({ result: "Success" }).to_json )
+        to_return(body: { login: body_base.merge({ result: "Success" }) }.to_json )
 
       subject.log_in "Test", "qwe123"
       subject.logged_in.should be true
@@ -22,14 +22,14 @@ describe MediawikiApi::Client do
         stub_request(:post, api_url).
           with(body: { format: "json", action: "login", lgname: "Test", lgpassword: "qwe123" }).
           to_return(
-            body: body_base.merge({ result: "NeedToken", token: "456" }).to_json,
+            body: { login: body_base.merge({ result: "NeedToken", token: "456" }) }.to_json,
             headers: { "Set-Cookie" => "prefixSession=789; path=/; domain=localhost; HttpOnly" }
           )
 
         @success_req = stub_request(:post, api_url).
           with(body: { format: "json", action: "login", lgname: "Test", lgpassword: "qwe123", lgtoken: "456" }).
           with(headers: { "Cookie" => "prefixSession=789" }).
-          to_return(body: body_base.merge({ result: "Success" }).to_json )
+          to_return(body: { login: body_base.merge({ result: "Success" }) }.to_json )
       end
 
       it "logs in" do
@@ -47,7 +47,7 @@ describe MediawikiApi::Client do
       before do
         stub_request(:post, api_url).
           with(body: { format: "json", action: "login", lgname: "Test", lgpassword: "qwe123" }).
-          to_return(body: body_base.merge({ result: "EmptyPass" }).to_json )
+          to_return(body: { login: body_base.merge({ result: "EmptyPass" }) }.to_json )
       end
 
       it "does not log in" do
