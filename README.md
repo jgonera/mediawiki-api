@@ -18,7 +18,13 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+```ruby
+require 'mediawiki-api'
+
+client = MediawikiApi::Client.new('http://127.0.0.1/w/api.php')
+client.log_in('username', 'pass')
+client.create_page('Test api', "lalala '''test'''")
+```
 
 ## Contributing
 
