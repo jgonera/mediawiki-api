@@ -1,18 +1,55 @@
 require 'spec_helper'
 
 describe MediawikiApi::Client do
+  subject { MediawikiApi::Client.new(api_url) }
+
   describe "#log_in" do
-    it "logs in on successful response" do
-      stub_request(:post, "localhost/api.php").
-        with(body: hash_including({ format: "json", action: "login", lgname: "Test", lgpassword: "qwe123" })).
-        to_return(status: 200, body: {
-          result: "Success",
-          token: "b5780b6e2f27e20b450921d9461010b4",
-          cookieprefix: "enwiki",
-          sessionid: "17ab96bd8ffbe8ca58a78657a918558e"
-        }.to_json )
+    body_base = { cookieprefix: "prefix", sessionid: "123" }
+
+    it "logs in when API returns Success" do
+      stub_request(:post, api_url).
+        with(body: { format: "json", action: "login", lgname: "Test", lgpassword: "qwe123" }).
+        to_return(body: body_base.merge({ result: "Success" }).to_json )
+
       subject.log_in "Test", "qwe123"
       subject.logged_in.should be true
+    end
+
+    context "when API returns NeedToken" do
+      before do
+        headers = { "Set-Cookie" => "prefixSession=789; path=/; domain=localhost; HttpOnly" }
+
+        stub_request(:post, api_url).
+          with(body: { format: "json", action: "login", lgname: "Test", lgpassword: "qwe123" }).
+          to_return(
+            body: body_base.merge({ result: "NeedToken", token: "456" }).to_json,
+            headers: { "Set-Cookie" => "prefixSession=789; path=/; domain=localhost; HttpOnly" }
+          )
+
+        @success_stub = stub_request(:post, api_url).
+          with(body: { format: "json", action: "login", lgname: "Test", lgpassword: "qwe123", lgtoken: "456" }).
+          with(headers: { "Cookie" => "prefixSession=789" }).
+          to_return(body: body_base.merge({ result: "Success" }).to_json )
+      end
+
+      it "logs in" do
+        subject.log_in "Test", "qwe123"
+        subject.logged_in.should be true
+      end
+
+      it "sends second request with token and cookies" do
+        subject.log_in "Test", "qwe123"
+        @success_stub.should have_been_requested
+      end
+    end
+
+    it "does not log in when API returns neither Success nor NeedToken" do
+      stub_request(:post, api_url).
+        with(body: { format: "json", action: "login", lgname: "Test", lgpassword: "qwe123" }).
+        to_return(body: body_base.merge({ result: "Failure" }).to_json )
+
+      subject.log_in "Test", "qwe123"
+      subject.logged_in.should be false
     end
   end
 end
