@@ -43,13 +43,21 @@ describe MediawikiApi::Client do
       end
     end
 
-    it "does not log in when API returns neither Success nor NeedToken" do
-      stub_request(:post, api_url).
-        with(body: { format: "json", action: "login", lgname: "Test", lgpassword: "qwe123" }).
-        to_return(body: body_base.merge({ result: "Failure" }).to_json )
+    context "when API returns neither Success nor NeedToken" do
+      before do
+        stub_request(:post, api_url).
+          with(body: { format: "json", action: "login", lgname: "Test", lgpassword: "qwe123" }).
+          to_return(body: body_base.merge({ result: "EmptyPass" }).to_json )
+      end
 
-      subject.log_in "Test", "qwe123"
-      subject.logged_in.should be false
+      it "does not log in" do
+        expect { subject.log_in "Test", "qwe123" }.to raise_error
+        subject.logged_in.should be false
+      end
+
+      it "raises error with proper message" do
+        expect { subject.log_in "Test", "qwe123" }.to raise_error MediawikiApi::LoginError, "EmptyPass"
+      end
     end
   end
 end

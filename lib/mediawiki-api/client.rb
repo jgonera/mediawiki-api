@@ -3,6 +3,9 @@ require 'faraday-cookie_jar'
 require 'json'
 
 module MediawikiApi
+  class LoginError < StandardError
+  end
+
   class Client
     attr_accessor :logged_in
 
@@ -29,6 +32,8 @@ module MediawikiApi
         @logged_in = true
       when 'NeedToken'
         log_in username, password, data['token']
+      else
+        raise LoginError, data['result']
       end
     end
   end
