@@ -26,7 +26,7 @@ describe MediawikiApi::Client do
             headers: { "Set-Cookie" => "prefixSession=789; path=/; domain=localhost; HttpOnly" }
           )
 
-        @success_stub = stub_request(:post, api_url).
+        @success_req = stub_request(:post, api_url).
           with(body: { format: "json", action: "login", lgname: "Test", lgpassword: "qwe123", lgtoken: "456" }).
           with(headers: { "Cookie" => "prefixSession=789" }).
           to_return(body: body_base.merge({ result: "Success" }).to_json )
@@ -39,7 +39,7 @@ describe MediawikiApi::Client do
 
       it "sends second request with token and cookies" do
         subject.log_in "Test", "qwe123"
-        @success_stub.should have_been_requested
+        @success_req.should have_been_requested
       end
     end
 
@@ -58,6 +58,29 @@ describe MediawikiApi::Client do
       it "raises error with proper message" do
         expect { subject.log_in "Test", "qwe123" }.to raise_error MediawikiApi::LoginError, "EmptyPass"
       end
+    end
+  end
+
+  describe "#create_page" do
+    before do
+      stub_request(:get, api_url).
+        with(query: { format: "json", action: "tokens", type: "edit" }).
+        to_return(body: { tokens: { edittoken: "t123" } }.to_json )
+      @edit_req = stub_request(:post, api_url).
+        with(body: { format: "json", action: "edit", title: "Test", text: "test123", token: "t123" })
+    end
+
+    it "creates a page using an edit token" do
+      subject.create_page("Test", "test123")
+      @edit_req.should have_been_requested
+    end
+
+    context "when API returns Success" do
+      before do
+        @edit_req.to_return(body: { result: "Success" }.to_json )
+      end
+
+      it "returns a MediawikiApi::Page"
     end
   end
 end
